@@ -1,0 +1,1297 @@
+<HTML>
+
+	<TITLE>Проверка функционирования области для рисования</TITLE>
+
+	<BODY>
+
+		<SCRIPT SRC="Vue.js"></SCRIPT>
+		
+		<SCRIPT SRC="shim.min.js"></SCRIPT>
+		<SCRIPT SRC="xlsx.full.min.js"></SCRIPT>		
+
+		<div id="draw">
+			<input id="fOptions" type="checkbox" v-model="flgOptions">
+			<label for="fOptions">Показывать настройки</label>
+			<br>
+			<template v-if="flgOptions">
+				<br>
+				Ширина: <input v-model="wi" @change="countPoints(false)">
+				<br>
+				Высота: <input v-model="hi" @change="countPoints(false)">
+				<br>
+				Отступ от края: <input v-model="shift" @change="countPoints(false)">
+				<br>
+				<input id="fPositive" type="checkbox" v-model="flgPositive" @change="countPoints(false)">
+				<label for="fPositive">Только положительная область</label>			
+				<br>
+				<input id="fXaxis" type="checkbox" v-model="flgXaxis" @change="countPoints(false)">
+				<label for="fXaxis">Отображать ось абсцисс</label>
+				<br>
+				<input id="fTxts" type="checkbox" v-model="flgTxts" @change="countPoints(false)">
+				<label for="fTxts">Отображать наименования осей</label>				
+				<br>
+				<input id="fXstrokes" type="checkbox" v-model="flgXstrokes" @change="countPoints(false)">
+				<label for="fXstrokes">Отображать штрихи по абсциссе</label>
+				<br>
+				<input id="fXgrid" type="checkbox" v-model="flgXgrid" @change="countPoints(false)">
+				<label for="fXgrid">Отображать сетку по абсциссе</label>				
+				<br>
+				<input id="fYaxis" type="checkbox" v-model="flgYaxis" @change="countPoints(false)">
+				<label for="fYaxis">Отображать ось ординат</label>
+				<br>
+				<input id="fYgrid" type="checkbox" v-model="flgYgrid" @change="countPoints(false)">
+				<label for="fYgrid">Отображать сетку по ординате</label>				
+				<br>
+				<input id="fYstrokes" type="checkbox" v-model="flgYstrokes" @change="countPoints(false)">
+				<label for="fYstrokes">Отображать штрихи по ординате</label>
+				<br>
+				<input id="fZaxis" type="checkbox" v-model="flgZaxis" @change="countPoints(false)">
+				<label for="fZaxis">Отображать ось аппликат</label>				
+				<br>
+				<input id="fZgrid" type="checkbox" v-model="flgZgrid" @change="countPoints(false)">
+				<label for="fZgrid">Отображать сетку по аппликате</label>				
+				<br>
+				<input id="fZstrokes" type="checkbox" v-model="flgZstrokes" @change="countPoints(false)">
+				<label for="fZstrokes">Отображать штрихи по аппликате</label>				
+				<br>				
+				<br>
+				Начало диапазона построения по абсциссе: <input v-model="startX" @change="countPoints(false)">
+				<br>
+				Конец диапазона построения по абсциссе: <input v-model="endX" @change="countPoints(false)">
+				<br>
+				Начало диапазона построения по ординате: <input v-model="startY" @change="countPoints(false)">
+				<br>
+				Конец диапазона построения по ординате: <input v-model="endY" @change="countPoints(false)">
+				<input type="hidden" v-model="startZ" @change="countPoints(false)">
+				<input type="hidden" v-model="endZ" @change="countPoints(false)">				
+				<br>			
+				Шаг построения по абсциссе: <input v-model="stepX" @change="countPoints(false)">
+				<br>
+				Шаг построения по ординате: <input v-model="stepY" @change="countPoints(false)">
+				<br>			
+				Шаг сетки по X: <input v-model="axisStepX" @change="countPoints(false)">
+				<br>
+				Шаг сетки по Y: <input v-model="axisStepY" @change="countPoints(false)">
+				<br>
+				Шаг сетки по Z: <input v-model="axisStepZ" @change="countPoints(false)">			
+				<br>
+				Угол по X: <input v-model="angleXShow">			
+				<br>
+				Угол по Y: <input v-model="angleYShow">			
+				<br>			
+				<br>
+				<button id="btnExcelExample" @click="writeExampleExcel">Пример в Excel</button>
+				<button id="btnExcelPoints" @click="writePointsExcel">Точки в Excel</button>
+				<br>
+			</template>			
+			<br>
+			<!--@mousedown.prevent="rotate" @mouseup.prevent="previous"-->
+			<svg @click.prevent="incr" @mousedown.prevent="printXY" @mouseup.prevent="printLost" :width="wi" 
+				 :height="hi">
+				
+				<!-- линия оси абсцисс -->
+				<!-- цвет чёрный #000000 -->
+				<line v-for="x in axisX" 
+						stroke="#000000"
+						stroke-width="2"
+						:x1="x.x1" 
+						:y1="x.y1" 
+						:x2="x.x2" 
+						:y2="x.y2"/>						
+				
+				<!-- линия оси ординат -->
+				<!-- цвет чёрный #000000 -->
+				<line v-for="y in axisY" 
+						stroke="#000000"
+						stroke-width="2"
+						:x1="y.x1" 
+						:y1="y.y1" 
+						:x2="y.x2" 
+						:y2="y.y2"/>
+				
+				<!-- линия оси аппликат -->
+				<!-- цвет чёрный #000000 -->
+				<line v-for="z in axisZ"
+						stroke="#000000"
+						stroke-width="2"
+						:x1="z.x1" 
+						:y1="z.y1" 
+						:x2="z.x2" 
+						:y2="z.y2"/>
+
+				<!-- наименование осей -->
+				<!-- цвет чёрный #000000 -->
+				<text v-for="t in txts"
+						fill="#000000"
+						font-weight="bold"
+						font-family="Tahoma"
+						:x="t.x" 
+						:y="t.y">{{ t.name }}</text>
+
+				<!-- нанесение штрихов по абсциссе -->
+				<!-- цвет чёрный #000000 -->
+				<line v-for="s in strokesX" 
+						stroke="#000000"
+						:x1="s.x1" 
+						:y1="s.y1" 
+						:x2="s.x2" 
+						:y2="s.y2"/>
+						
+				<!-- нанесение сетки по абсциссе -->
+				<!-- как в MathCAD цвет #00ff00 - зелёный -->
+				<!-- пользовательское предпочтение #d6d6d6 - серый -->				
+				<line v-for="g in gridX" 
+						stroke="#d6d6d6"
+						:x1="g.x1" 
+						:y1="g.y1" 
+						:x2="g.x2" 
+						:y2="g.y2"/>
+					
+				<!-- нанесение текста по абсциссе -->
+				<text v-for="s in strokesX" 
+						font-weight="normal"
+						font-size="10"
+						:x="s.txtX" 
+						:y="s.txtY">{{s.txt}}</text>	
+						
+				<!-- нанесение штрихов по ординате -->
+				<!-- цвет чёрный #000000 -->
+				<line v-for="s in strokesY" 
+						stroke="#000000"
+						:x1="s.x1" 
+						:y1="s.y1" 
+						:x2="s.x2" 
+						:y2="s.y2"/>
+
+				<!-- нанесение сетки по ординате -->
+				<!-- как в MathCAD цвет #00ff00 - зелёный -->
+				<!-- пользовательское предпочтение #d6d6d6 - серый -->
+				<line v-for="g in gridY" 
+						stroke="#d6d6d6"
+						:x1="g.x1" 
+						:y1="g.y1" 
+						:x2="g.x2" 
+						:y2="g.y2"/>						
+						
+				<!-- нанесение текста по ординате -->
+				<text v-for="s in strokesY" 
+						font-weight="normal"
+						font-size="10"
+						:x="s.txtX" 
+						:y="s.txtY">{{s.txt}}</text>
+
+						
+				<!-- нанесение штрихов по аппликате -->
+				<line v-for="s in strokesZ" 
+						stroke="#000000"
+						:x1="s.x1" 
+						:y1="s.y1" 
+						:x2="s.x2" 
+						:y2="s.y2"/>
+						
+				<!-- нанесение сетки по аппликате -->
+				<!-- как в MathCAD цвет #00ff00 - зелёный -->
+				<!-- пользовательское предпочтение #d6d6d6 - серый -->				
+				<line v-for="g in gridZ" 
+						stroke="#d6d6d6"
+						:x1="g.x1" 
+						:y1="g.y1" 
+						:x2="g.x2" 
+						:y2="g.y2"/>						
+
+				<!-- нанесение текста по ординате -->
+				<text v-for="s in strokesZ" 
+						font-weight="normal"
+						font-size="10"
+						:x="s.txtX" 
+						:y="s.txtY">{{s.txt}}</text>	
+
+				<!-- нанесение точек функциональной зависимости -->
+				<!-- как в MathCAD цвет #ff0000 - красный -->
+				<!-- пользовательское предпочтение #9f22ff - фиолетовый -->
+				<circle v-for="p in pts" 
+						stroke="#9f22ff"
+						stroke-width="5"
+						:cx="p.x1" 
+						:cy="p.y1" 
+						r="2"/>						
+			</svg>
+
+			<p>Здесь координаты курсора мыши: {{mouseX}}, {{mouseY}}</p>			
+			
+			<!--
+			<ol>
+				<li v-for="p in points">
+					x: {{ p.x }}, y: {{ p.y }}, z: {{ p.z }}
+				</li>
+			</ol>
+			-->
+			
+			<ol>
+				<li v-for="s in strokesZ">
+					x1: {{ s.x1.toFixed(2) }}, y1: {{ s.y1.toFixed(2) }}, x2: {{ s.x2.toFixed(2) }}, y2: {{ s.y2.toFixed(2) }}
+				</li>
+			</ol>
+						
+			<!--
+			<ol>
+				<li v-for="v in gridX">
+					i: {{ v.i.toFixed(2) }}, x1: {{ v.x1.toFixed(2) }}, y1: {{ v.y1.toFixed(2) }}, x2: {{ v.x2.toFixed(2) }}, y2: {{ v.y2.toFixed(2) }}
+				</li>
+			</ol>
+			-->
+		</div>
+		
+		<SCRIPT>	
+			var myView = new Vue(
+			{
+				el: "#draw",
+				
+				data:
+				{
+					//Начало диапазона построения по абсциссе
+					startX: -5,
+					//Конец диапазона построения по абсциссе
+					endX: 5,
+					//Начало диапазона построения по ординате
+					startY: -5,
+					//Конец диапазона построения по ординате
+					endY: 5,
+					//Начало диапазона построения по аппликате
+					startZ: -5,
+					//Конец диапазона построения по аппликате
+					endZ: 5,										
+					
+					axisStepX: 1,
+					axisStepY: 1,
+					axisStepZ: 1,
+					
+					//Шаг построения по абсциссе
+					stepX: 0.1,
+					//Шаг построения по ординате
+					stepY: 0.1,
+					//Шаг построения по ординате
+					stepZ: 0.1,					
+					//Ширина области построения
+					wi: 500,
+					//Высота области построения
+					hi: 300,
+					//Сдвиг осей от края рамки
+					shift: 10,
+					//Длина стрелки оси
+					arLen: 15,
+					//Наклон стрелки оси
+					arAng: 5,
+					//Демонстрация настроек
+					flgOptions: true,
+										
+					//Отрисовка осей только в положительной области
+					flgPositive: false,
+					//Демонстрация наименований осей
+					flgTxts: true,					
+					//Отрисовка оси абсцисс
+					flgXaxis: true,
+					//Отрисовка штрихов по абсциссе
+					flgXstrokes: true,
+					//Отрисовка сетки по абсциссе
+					flgXgrid: false,					
+					//Отрисовка оси ординат
+					flgYaxis: true,
+					//Отрисовка штрихов по ординате
+					flgYstrokes: true,
+					//Отрисовка сетки по ординате
+					flgYgrid: false,	
+					//Отрисовка оси аппликат
+					flgZaxis: true,
+					//Отрисовка штрихов по аппликате
+					flgZstrokes: true,
+					//Отрисовка сетки по аппликате
+					flgZgrid: true,							
+					//Угол для оси X
+					angleXShow: 0,
+					//Угол для оси Y
+					angleYShow: 0,
+
+					mouseX: 1,
+					mouseY: 1,
+					
+					vals: [],
+					lines: [],
+					pts:[],
+					axisX:[],
+					axisY:[],
+					axisZ:[],
+					txts:[],
+					strokesX:[],
+					strokesY:[],
+					strokesZ:[],
+					gridX:[],
+					gridY:[],
+					gridZ:[],
+				},
+				
+				//Реактивно вычисляемые функции
+				computed:
+				{
+					//---ПЕРЕСЧИТЫВАЕМЫЕ ПАРАМЕТРЫ ОСИ X---
+					//Функция вычисления координаты X начала оси X
+					StartPosXforX:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.wi) - Number(this.shift);
+						else
+							return Number(this.wi) / 2;
+					},
+
+					/*
+					maxZ:
+					{
+						get: function()
+						{
+							return this.endZ;
+						},
+						set: function(newVal)
+						{
+							this.endZ = newVal;
+						}
+					},
+					*/
+					
+					/*
+					minZ:
+					{	
+						get: function()
+						{
+							return this.startZ;
+						},
+						set: function(newVal)
+						{
+							this.startZ = newVal;
+						}
+					},
+					*/
+					
+					//Функция вычисления координаты Y начала оси X
+					StartPosYforX:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.shift);
+						else
+							return Number(this.hi) / 2;
+					},
+					
+					//Функция вычисления начала диапазона по оси X
+					StartRangeForX:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.startX);
+						else
+							return 0;
+					},
+					
+					//Функция вычисления конца диапазона по оси X
+					EndRangeForX:function()
+					{
+						return Number(this.endX);
+					},
+					
+					//Функция вычисления координаты X конца оси X
+					EndPosXforX:function()
+					{
+						return Number(this.shift);
+					},
+					
+					//Функция вычисления координаты Y конца оси X
+					EndPosYforX:function()
+					{
+						return Number(this.hi) - Number(this.shift);
+					},
+					
+					//Масштаб по горизонтали для абсциссы
+					scaleHorizontalX:function()
+					{
+						//Берётся горизонталь по координатам X
+						var Xb = this.EndPosXforX;
+						var Xa = this.StartPosXforX;						
+						
+						//Горизонталь делится на диапазон по X
+						//(получается единичный вектор по оси X)
+						return (Xb - Xa) / ( this.EndRangeForX - this.StartRangeForX );
+					},
+
+					//угол между абсциссой и горизонтом
+					angleXToHorizontal:function()
+					{
+						var ang = Math.acos(this.scaleHorizontalX / this.scaleX);
+						this.angleXShow = ((ang * 180) / Math.PI).toFixed(2);
+						return ang;
+					},										
+					
+					//масштаб по абсциссе
+					scaleX:function()
+					{
+						//AB = SQRT( (Xb - Xa)^2 + (Yb - Ya)^2 )
+						var Xa = this.StartPosXforX;
+						var Ya = this.StartPosYforX;
+						
+						var Xb = this.EndPosXforX;
+						var Yb = this.EndPosYforX;
+							
+						return Math.abs(Math.sqrt(Math.pow( Xb - Xa, 2) + Math.pow(Yb - Ya, 2)) / ( this.EndRangeForX - this.StartRangeForX ));
+					},
+					//---ПЕРЕСЧИТЫВАЕМЫЕ ПАРАМЕТРЫ ОСИ X---					
+					
+					//---ПЕРЕСЧИТЫВАЕМЫЕ ПАРАМЕТРЫ ОСИ Y---
+					//Функция вычисления координаты X начала оси Y
+					StartPosXforY:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.shift);
+						else
+							return Number(this.wi) / 2;
+					},
+					
+					//Функция вычисления координаты Y начала оси Y
+					StartPosYforY:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.shift);
+						else
+							return Number(this.hi) / 2;
+					},
+					
+					//Функция вычисления начала диапазона по оси Y
+					StartRangeForY:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.startY);
+						else
+							return 0;
+					},
+					
+					//Функция вычисления конца диапазона по оси Y
+					EndRangeForY:function()
+					{
+						return Number(this.endY);
+					},
+
+					//Функция вычисления начала диапазона по оси Z
+					StartRangeForZ:function()
+					{
+						return Number(this.startZ);					
+					},
+					
+					//Функция вычисления конца диапазона по оси Z
+					EndRangeForZ:function()
+					{
+						return Number(this.endZ);
+					},
+					
+					//Функция вычисления координаты X конца оси Y
+					EndPosXforY:function()
+					{
+						return Number(this.wi) - Number(this.shift);
+					},
+					
+					//Функция вычисления координаты Y конца оси Y
+					EndPosYforY:function()
+					{
+						return Number(this.hi) - Number(this.shift);
+					},
+
+					//Функция вычисления координаты X начала оси Z
+					StartPosXforZ:function()
+					{
+						return Number(this.wi) / 2;				
+					},
+					
+					//Функция вычисления координаты Y начала оси Z
+					StartPosYforZ:function()
+					{
+						if (!this.flgPositive)
+							return Number(this.hi) - Number(this.shift);
+						else
+							return Number(this.hi) / 2;
+					},					
+					
+					//Функция вычисления координаты X конца оси Z
+					EndPosXforZ:function()
+					{		
+						return Number(this.wi) / 2;
+					},
+					
+					//Функция вычисления координаты Y конца оси Z
+					EndPosYforZ:function()
+					{
+						return Number(this.shift);
+					},					
+					
+					//Масштаб по горизонтали для ординаты
+					scaleHorizontalY:function()
+					{
+						var Xb = this.EndPosXforY;
+						var Xa = this.StartPosXforY
+						
+						return (Xb - Xa) / ( this.EndRangeForY - this.StartRangeForY );
+					},
+					
+					//угол между ординатой и горизонтом
+					angleYToHorizontal:function()
+					{
+						var ang = Math.acos(this.scaleHorizontalY / this.scaleY);
+						this.angleYShow = ((ang * 180) / Math.PI).toFixed(2);
+						return ang;
+					},					
+					
+					//масштаб по ординате
+					scaleY:function()
+					{
+						//AB = SQRT( (Xb - Xa)^2 + (Yb - Ya)^2 )
+						var Xb = this.EndPosXforY;
+						var Yb = this.EndPosYforY;
+						var Xa = this.StartPosXforY;
+						var Ya = this.StartPosYforY;
+						
+						return Math.abs((Math.sqrt(Math.pow( Xb - Xa, 2) + Math.pow( Yb - Ya, 2)) / ( this.EndRangeForY - this.StartRangeForY )));
+					},
+					
+					//масштаб по аппликате
+					scaleZ:function()
+					{
+						console.log(this.EndPosYforZ);
+						console.log(this.StartPosYforZ);
+						console.log(this.EndRangeForZ);
+						console.log(this.StartRangeForZ);
+						
+						return Math.abs((this.EndPosYforZ - this.StartPosYforZ) / ( this.EndRangeForZ - this.StartRangeForZ ));
+					},
+					
+					//Вращение/перебор шага сетки
+					rotate:function()
+					{
+						this.axisStepX = 0.1;
+						this.axisStepY = 0.1;
+						this.axisStepZ = 0.1;
+						this.countPoints(false);
+					},
+					
+					previous:function()
+					{
+						this.axisStepX = 1;
+						this.axisStepY = 1;
+						this.axisStepZ = 1;
+						this.countPoints(false);
+					},							
+				},
+				
+				//Раздел методов фреймворка
+				methods:
+				{	
+					incr:function()
+					{
+						if (Number(this.axisStepX) < 5)
+						{
+							this.axisStepX = Number(this.axisStepX) + 0.1;
+							this.axisStepY = Number(this.axisStepY) + 0.1;
+							this.axisStepZ = Number(this.axisStepZ) + 0.1;
+						}
+						else
+						{
+							this.axisStepX = 1;
+							this.axisStepY = 1;
+							this.axisStepZ = 1;							
+						}
+						
+						this.countPoints(false);
+					},
+
+					printXY:function(e)
+					{
+						var Top = 0;
+						//console.log(e.target);
+						console.log(e.target.parentElement.children.length);
+						for (var i = 0; i < e.target.parentElement.children.length ; i++)
+						{
+							if (e.target.parentElement.children[i] === e.target) break;
+							Top = Top + e.target.parentElement.children[i].offsetHeight;
+						}
+						this.mouseX = e.x - e.target.parentElement.offsetLeft;
+						this.mouseY = e.y + e.target.parentElement.offsetTop - Top;
+					},
+
+					printLost:function(e)
+					{
+						console.log(e.target);
+						console.log(e.root);
+						this.mouseX = e.x - e.target.parentElement.offsetLeft;
+						this.mouseY = e.y;
+					},
+					
+					countTxts:function()
+					{
+						//Создаём пустой массив текстов
+						this.txts = [];
+						//Текст (новый объект) для оси абсцисс
+						var txt = new Object();	
+						txt.name = "X";
+						txt.x = Number(this.shift);
+						txt.y = Number(this.hi) - Number(this.shift) - Number(this.arLen);
+						this.txts.push(txt);
+						
+						//Текст (новый объект) для оси ординат
+						var txt = new Object();	
+						txt.name = "Y";
+						txt.x = Number(this.wi) - Number(this.shift) - Number(this.arLen) / 2;
+						txt.y = Number(this.hi) - Number(this.shift) - Number(this.arLen);
+						this.txts.push(txt);
+						
+						//Текст (новый объект) для оси аппликат
+						var txt = new Object();	
+						txt.name = "Z";
+						txt.x = Number(this.wi) / 2 + Number(this.arLen) / 2;
+						txt.y = Number(this.shift) + Number(this.arLen) / 2;
+						this.txts.push(txt);
+
+						//Текст (новый объект) для нулевой точки
+						var txt = new Object();	
+						txt.name = "0";
+						txt.x = Number(this.wi) / 2 - Number(this.arLen);
+						txt.y = Number(this.hi) / 2 - Number(this.arLen) / 2;
+						this.txts.push(txt);						
+						
+					},
+
+					//Расчёт оси X
+					countAxisX:function()
+					{
+						//Создаём пустой массив под ось X
+						this.axisX = [];
+						//Линия оси (новый объект)
+						var axis = new Object();
+						
+						//---------------ЛИНИЯ ОСИ---------------
+
+						axis.x1 = this.StartPosXforX;
+						axis.y1 = this.StartPosYforX;
+												
+						//Точка окончания - левый нижний угол области построения
+						axis.x2 = this.EndPosXforX;
+						axis.y2 = this.EndPosYforX;
+						
+						//Добавляем линию оси в массив
+						this.axisX.push(axis);
+						
+						//---------------ЛИНИЯ ОСИ---------------
+						
+						//Верхняя часть стрелки оси
+						var arrow = new Object();
+						
+						arrow.x1 = this.EndPosXforX;
+						arrow.y1 = this.EndPosYforX;
+						arrow.x2 = this.EndPosXforX + Number(this.arLen);
+						arrow.y2 = this.EndPosYforX - Number(this.arLen);
+						
+						this.axisX.push(arrow);
+
+						//Нижняя часть стрелки оси
+						var arrow = new Object();
+						
+						arrow.x1 = this.EndPosXforX;
+						arrow.y1 = this.EndPosYforX;
+						arrow.x2 = this.EndPosXforX + Number(this.arLen);
+						arrow.y2 = this.EndPosYforX - Math.sqrt(this.arLen);
+						
+						this.axisX.push(arrow);						
+					},
+					
+					//Вычисление штрихов по оси абсцисс
+					countStrokesX:function()
+					{
+						//Шаг сетки по оси абсцисс
+						var axisStep = Number(this.axisStepX);
+					
+						//Считаем количество точек построения
+						var kolPoints = (this.EndRangeForX - this.StartRangeForX) / axisStep;
+						
+						//Очищаем массив штрихов по оси абсцисс
+						this.strokesX = [];
+						
+						//Перебираем все точки построения
+						for (var i = 0; i <= kolPoints ; i++)
+						{
+							//Если точка в точности не попала в ноль (на ось абсцисс)
+							if (this.StartRangeForX + i * axisStep != 0)
+							{
+								//Рассматривается не последняя точка
+								if (kolPoints != i)
+								{
+									//Создаём новый объект
+									var str = new Object();
+									
+									//Расчитываем первую точку объекта (правый верхний угол)
+									//Абсцисса справа
+									str.x1 = this.StartPosXforX - this.arAng + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+									//Ордината сверху
+									str.y1 = this.StartPosYforX + i * axisStep * this.scaleX * Math.sin(this.angleXToHorizontal);
+									
+									//Расчитываем вторую точку объекта
+									//Абсцисса справа
+									str.x2 = this.StartPosXforX + this.arAng + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+									//Ордината сверху
+									str.y2 = this.StartPosYforX + i * axisStep * this.scaleX * Math.sin(this.angleXToHorizontal);
+									
+									str.txtX = this.StartPosXforX - this.arAng + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+									str.txtY = this.StartPosYforX + i * axisStep * this.scaleX * Math.sin(this.angleXToHorizontal);
+									
+									if (Number.isInteger(this.StartRangeForX + i * axisStep))
+										str.txt = (this.StartRangeForX + i * axisStep);
+									else
+										str.txt = (this.StartRangeForX + i * axisStep).toFixed(1);
+									
+									//Записываем объект в массив штрихов
+									this.strokesX.push(str);
+								}
+								
+								this.vals.push(this.StartRangeForX + i * axisStep);
+							}
+						}
+					},
+					
+					//Вычисление сетки по оси абсцисс
+					countGridX:function()
+					{
+						//Шаг сетки по оси абсцисс
+						var axisStep = Number(this.axisStepX);
+					
+						//Считаем количество точек построения
+						var kolPoints = (this.EndRangeForX - this.StartRangeForX) / axisStep;
+						
+						//Очищаем массив линий сетки по оси абсцисс
+						this.gridX = [];
+						
+						//Перебираем все точки построения
+						for (var i = 0; i <= kolPoints ; i++)
+						{
+							//Если точка в точности не попала в ноль (на ось абсцисс)
+							if (this.StartRangeForX + i * axisStep != 0)
+							{
+								//Сетка, параллельная оси аппликат
+								var gd = new Object();
+								//
+								gd.i = i;
+								//Оба X сдвинуты на столько же, насколько сдвинута черта по X
+								gd.x1 = this.StartPosXforX + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+								//Y начальный всегда на позиции сдвига от рамки
+								gd.y1 = Number(this.shift);
+								gd.x2 = this.StartPosXforX + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+								//Y конечный до Y на оси
+								gd.y2 = ( this.flgPositive ? this.StartPosYforX + i * axisStep * this.scaleX * Math.sin(this.angleXToHorizontal) : this.EndPosYforX);
+								
+								//Добавляем линию в коллекцию
+								this.gridX.push(gd);
+								
+								//Сетка, параллельная оси ординат
+								var gd = new Object();
+								//
+								gd.i = i;
+								//
+								gd.x1 = this.StartPosXforX - ( !this.flgPositive ? (this.wi - this.shift) / 2 : 0 ) + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+								//if ( gd.x1 < Number(this.shift) ) gd.x1 = Number(this.shift);
+
+								//
+								gd.y1 = this.StartPosYforX - ( !this.flgPositive ? (this.hi - this.shift) / 2 : 0 ) + i * axisStep * this.scaleX * Math.sin(this.angleXToHorizontal);
+								//if ( gd.y1 < Number(this.shift) ) gd.y1 = Number(this.shift);
+
+								//
+								gd.x2 = this.StartPosXforX + ( (this.wi - this.shift) / 2 ) + i * axisStep * this.scaleX * Math.cos(this.angleXToHorizontal);
+								//if ( gd.x2 > Number(this.wi) - Number(this.shift) ) gd.x2 = Number(this.wi) - Number(this.shift);
+								
+								//
+								gd.y2 = this.StartPosYforX + ( (this.hi - this.shift) / 2 ) + i * axisStep * this.scaleX * Math.sin(this.angleXToHorizontal);
+								//if ( gd.y2 > Number(this.hi) - Number(this.shift) ) gd.y2 = Number(this.hi) - Number(this.shift);
+								
+								//Добавляем линию в коллекцию
+								this.gridX.push(gd);
+							}
+						}					
+					},					
+					
+					//Расчёт оси Y
+					countAxisY:function()
+					{
+						this.axisY = [];
+						
+						var axis = new Object();
+						
+						axis.x1 = this.StartPosXforY;
+						axis.y1 = this.StartPosYforY;
+						axis.x2 = this.EndPosXforY;
+						axis.y2 = this.EndPosYforY;
+						
+						this.axisY.push(axis);
+
+						//Нижняя часть стрелки оси
+						var arrow = new Object();
+						
+						arrow.x1 = this.EndPosXforY;
+						arrow.y1 = this.EndPosYforY;
+						arrow.x2 = this.EndPosXforY - Number(this.arLen);
+						arrow.y2 = this.EndPosYforY - Math.sqrt(this.arLen);
+						
+						this.axisY.push(arrow);
+
+						//Верхняя часть стрелки оси
+						var arrow = new Object();
+						
+						arrow.x1 = this.EndPosXforY;
+						arrow.y1 = this.EndPosYforY;
+						arrow.x2 = this.EndPosXforY - Number(this.arLen);
+						arrow.y2 = this.EndPosYforY - Number(this.arLen);
+						
+						this.axisY.push(arrow);	
+					},
+					
+					//Вычисление штрихов по оси ординат
+					countStrokesY:function()
+					{	
+						//шаг сетки по оси ординат
+						var axisStep = Number(this.axisStepY);
+						
+						//Считаем количество точек построения
+						var kolPoints = (this.EndRangeForY - this.StartRangeForY) / axisStep;						
+
+						//очищаем массив штрихов по ординате
+						this.strokesY = [];
+						
+						//Перебираем все точки построения
+						for (var i = 0; i <= kolPoints ; i++)
+						{
+							//Если точка в точности не попала в ноль (по ординате)
+							if (this.StartRangeForY + i * axisStep != 0)
+							{
+								//Если точка не последняя
+								if (i != kolPoints)
+								{
+									//Создаётся новый объект
+									var str = new Object();
+
+									//Рассчитываем первую точку объекта
+									//Абсцисса слева
+									str.x1 = this.StartPosXforY - this.arAng + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+									//Ордината сверху
+									str.y1 = this.StartPosYforY + i * axisStep * this.scaleY * Math.sin(this.angleYToHorizontal);
+
+									//Рассчитываем вторую точку объекта
+									//Абсцисса слева
+									str.x2 = this.StartPosXforY + this.arAng + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+									//Ордината сверху
+									str.y2 = this.StartPosYforY + i * axisStep * this.scaleY * Math.sin(this.angleYToHorizontal);
+									
+									str.txtX = this.StartPosXforY - this.arAng + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+									str.txtY = this.StartPosYforY + i * axisStep * this.scaleY * Math.sin(this.angleYToHorizontal);
+									
+									if (Number.isInteger(this.StartRangeForY + i * axisStep))
+										str.txt = (this.StartRangeForY + i * axisStep);
+									else
+										str.txt = (this.StartRangeForY + i * axisStep).toFixed(1);
+									
+									this.strokesY.push(str);
+								}							
+							}
+						}
+					},
+					
+					//Вычисление сетки по оси ординат
+					countGridY:function()
+					{
+						//шаг сетки по оси ординат
+						var axisStep = Number(this.axisStepY);
+						
+						//Считаем количество точек построения
+						var kolPoints = (this.EndRangeForY - this.StartRangeForY) / axisStep;						
+
+						//Очищаем массив линий сетки по ординате
+						this.gridY = [];
+						
+						//Перебираем все точки построения
+						for (var i = 0; i <= kolPoints ; i++)
+						{
+							//Если точка в точности не попала в ноль (по ординате)
+							if (this.StartRangeForY + i * axisStep != 0)
+							{							
+								//Сетка, параллельная оси аппликат
+								var gd = new Object();
+								//
+								gd.i = i;
+								//
+								gd.x1 = this.StartPosXforY + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+								//
+								gd.y1 = Number(this.shift);
+								gd.x2 = this.StartPosXforY + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+								//
+								gd.y2 = ( this.flgPositive ? this.StartPosYforY + i * axisStep * this.scaleY * Math.sin(this.angleYToHorizontal) : this.EndPosYforY);
+								
+								//Добавляем линию в коллекцию
+								this.gridY.push(gd);
+								
+								//Сетка, параллельная оси абсцисс
+								var gd = new Object();
+								//
+								gd.i = i;
+								//
+								gd.x1 = this.StartPosXforY + ( !this.flgPositive ? (this.wi - this.shift) / 2 : 0 ) + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+								//if ( gd.x1 < Number(this.shift) ) gd.x1 = Number(this.shift);
+
+								//
+								gd.y1 = this.StartPosYforY - ( !this.flgPositive ? (this.hi - this.shift) / 2 : 0 ) + i * axisStep * this.scaleY * Math.sin(this.angleYToHorizontal);
+								//if ( gd.y1 < Number(this.shift) ) gd.y1 = Number(this.shift);
+
+								//
+								gd.x2 = this.StartPosXforY - ( (this.wi - this.shift) / 2 ) + i * axisStep * this.scaleY * Math.cos(this.angleYToHorizontal);
+								//if ( gd.x2 > Number(this.wi) - Number(this.shift) ) gd.x2 = Number(this.wi) - Number(this.shift);
+								
+								//
+								gd.y2 = this.StartPosYforY + ( (this.hi - this.shift) / 2 ) + i * axisStep * this.scaleY * Math.sin(this.angleYToHorizontal);
+								//if ( gd.y2 > Number(this.hi) - Number(this.shift) ) gd.y2 = Number(this.hi) - Number(this.shift);
+								
+								//Добавляем линию в коллекцию
+								this.gridY.push(gd);								
+							}
+						}					
+					},
+					
+					//Расчёт оси Z
+					countAxisZ:function()
+					{
+						this.axisZ = [];
+						
+						var axis = new Object();
+						
+						axis.x1 = this.StartPosXforZ;
+						axis.y1 = this.StartPosYforZ;
+
+						axis.x2 = this.EndPosXforZ;
+						axis.y2 = this.EndPosYforZ;
+						
+						this.axisZ.push(axis);
+
+						//Левая часть стрелки оси
+						var arrow = new Object();
+						
+						arrow.x1 = Number(this.wi) / 2;
+						arrow.y1 = Number(this.shift);
+						arrow.x2 = (Number(this.wi) / 2) - Number(this.arAng);
+						arrow.y2 = Number(this.shift) + this.arLen;
+						
+						this.axisZ.push(arrow);
+
+						//Правая часть стрелки оси
+						var arrow = new Object();
+						
+						arrow.x1 = Number(this.wi) / 2;
+						arrow.y1 = Number(this.shift);
+						arrow.x2 = (Number(this.wi) / 2) + Number(this.arAng);
+						arrow.y2 = Number(this.shift) + Number(this.arLen);
+						
+						this.axisZ.push(arrow);	
+					},
+					
+					//Вычисление штрихов по оси аппликат
+					countStrokesZ:function()
+					{
+						var axisStep = Number(this.axisStepZ);
+						
+						//Считаем количество точек построения
+						var kolPoints = (this.EndRangeForZ - this.StartRangeForZ) / axisStep;
+						
+						var Scale = ( !this.flgPositive ? (this.hi - 2 * (this.shift)) : (this.hi / 2 - (this.shift)) ) / (!this.flgPositive ? 10 : 5);
+						
+						this.strokesZ = [];
+						
+						for (var i = 0; i <= kolPoints; i++)
+						{
+							if (this.StartRangeForZ + i * axisStep != 0)
+							{
+								if (i != kolPoints)
+								{
+									var str = new Object();
+									str.x1 = this.StartPosXforZ - this.arAng;
+									str.y1 = this.StartPosYforZ - i * axisStep * Scale;
+									
+									str.x2 = this.StartPosXforZ + this.arAng;
+									str.y2 = this.StartPosYforZ - i * axisStep * Scale;
+									
+									str.txtX = this.StartPosXforZ + this.arLen / 2;
+									str.txtY = this.StartPosYforZ + (this.arAng / 2) - i * axisStep * Scale;
+									
+									if (Number.isInteger(this.StartRangeForZ + i * axisStep))
+										str.txt = (this.StartRangeForZ + i * axisStep);
+									else
+										str.txt = (this.StartRangeForZ + i * axisStep).toFixed(1);
+									
+									this.strokesZ.push(str);
+								}
+							}
+						}
+					},
+
+					//Вычисление сетки по оси аппликат
+					countGridZ:function()
+					{
+						//шаг сетки по оси ординат
+						var axisStep = Number(this.axisStepZ);
+						
+						//Считаем количество точек построения
+						var kolPoints = (this.EndRangeForZ - this.StartRangeForZ) / axisStep;						
+						
+						//var Scale = ( !this.flgPositive ? (this.hi - 2 * (this.shift)) : (this.hi / 2 - (this.shift)) ) / (!this.flgPositive ? 10 : 5);
+						var Scale = this.scaleZ;
+						console.log(this.scaleZ);
+
+						//Очищаем массив линий сетки по ординате
+						this.gridZ = [];
+						
+						//Перебираем все точки построения
+						for (var i = 0; i <= kolPoints ; i++)
+						{
+							//Если точка в точности не попала в ноль (по ординате)
+							if (this.StartRangeForY + i * axisStep != 0)
+							{					
+								//Сетка, параллельная оси ординат
+								var gd = new Object();
+								//
+								gd.i = i;
+								//
+								gd.x1 = this.StartPosXforY;
+								//
+								gd.y1 = this.StartPosYforY + ( !this.flgPositive ? (this.hi - 2 * this.shift) / 2 : 0 ) - i * axisStep * Scale;
+								
+								gd.x2 = this.EndPosXforY;
+								//
+								gd.y2 = this.EndPosYforY + ( !this.flgPositive ? (this.hi - 2 * this.shift) / 2 : 0 ) - i * axisStep * Scale;
+								
+								//Добавляем линию в коллекцию
+								this.gridY.push(gd);
+								
+								//Сетка, параллельная оси абсцисс
+								var gd = new Object();
+								//
+								gd.i = i;
+								//
+								gd.x1 = this.StartPosXforX;
+								//
+								gd.y1 = this.StartPosYforX + ( !this.flgPositive ? (this.hi - 2 * this.shift) / 2 : 0 ) - i * axisStep * Scale;
+								//
+								gd.x2 = this.EndPosXforX;
+								//
+								gd.y2 = this.EndPosYforX + ( !this.flgPositive ? (this.hi - 2 * this.shift) / 2 : 0 ) - i * axisStep * Scale;
+								
+								//Добавляем линию в коллекцию
+								this.gridZ.push(gd);								
+							}
+						}					
+					},					
+					
+					//
+					countPoints:function(flgFirstTime)
+					{
+						//Округляем минимальное значение функции в меньшую сторону
+						//this.minZ = Math.floor(this.minZ);
+						//this.startZ = !this.flgPositive ? -5 : 0;
+						//Округляем максимальное значение функции в большую сторону
+						//this.maxZ = Math.ceil(this.maxZ);
+						//this.endZ = 5;
+						
+						//console.log(this.flgPositive);
+						//Расчёт и изображение координатных осей
+						if (this.flgXaxis) 
+							this.countAxisX();
+						else
+							this.axisX = [];
+						
+						if (this.flgYaxis)
+							this.countAxisY();
+						else
+							this.axisY = [];
+						
+						if (this.flgZaxis)
+							this.countAxisZ();
+						else
+							this.axisZ = [];
+							
+						if (this.flgTxts)
+							this.countTxts();
+						else
+							this.txts = [];
+						
+						this.points = [];
+						
+						/*
+						for (var i = 0; i <= ((Number(this.endX)) - (Number(this.startX))) / Number(this.stepX) ; i++)
+						{
+							//for (var j = 0; j <= ((Number(this.endY)) - (Number(this.startY))) / Number(this.stepY) ; j++)
+							//{						
+								var pt = new Object();
+								
+								//Парабола
+								//pt.x = (Number(this.startX) + Number(this.stepX) * i).toFixed(5);
+								//pt.y = Math.pow(pt.x, 2).toFixed(5);
+								//pt.z = (0).toFixed(5);
+								
+								//Синусоида
+								pt.x = (Number(this.startX) + Number(this.stepX) * i).toFixed(5);
+								pt.y = Math.sin(Number(pt.x)).toFixed(5);
+								pt.z = (0).toFixed(5);
+								
+								//pt.y = Math.sin(pt.x).toFixed(5);
+								//pt.y = Number(pt.x).toFixed(5);
+								//pt.y = (Number(this.startY) + Number(this.stepY) * j).toFixed(5);
+								//pt.z = ( (Math.pow(pt.x, 2) + Math.pow(pt.y, 2)) / 2 ).toFixed(5);
+								
+								if (pt.z < this.minZ)
+								{
+									this.minZ = pt.z;
+								}
+								
+								if (pt.z > this.maxZ)
+								{
+									this.maxZ = pt.z;
+								}
+								
+								this.points.push(pt);
+							//}
+						}
+						*/
+						
+						/*
+						var pt = new Object();
+						
+						pt.x = 1;
+						pt.y = 0;
+						pt.z = 0;
+						
+						this.points.push(pt);
+						*/
+
+						this.pts = [];
+						for (var i = 0; i < this.points.length; i++)
+						{
+							var pt = new Object();
+							var x0 = Number(this.wi) / 2;
+							var y0 = Number(this.hi) / 2;
+							
+							var dist = Math.sqrt(Math.pow(this.points[i].x, 2) + Math.pow(this.points[i].y, 2));
+							
+							pt.x1 = x0 + dist * this.angleXToHorizontal * Math.cos(this.angleXToHorizontal); 
+							pt.y1 = y0 + dist * this.angleYToHorizontal * Math.sin(this.angleYToHorizontal);
+							
+							this.pts.push(pt);
+						}
+						
+						if (this.flgXstrokes)
+							this.countStrokesX();
+						else
+							this.strokesX = [];
+						
+						if (this.flgXgrid)
+							this.countGridX();
+						else
+							this.gridX = [];
+						
+						if (this.flgYstrokes)
+							this.countStrokesY();
+						else
+							this.strokesY = [];
+							
+						if (this.flgYgrid)
+							this.countGridY();
+						else
+							this.gridY = [];
+							
+						if (this.flgZstrokes)
+							this.countStrokesZ();
+						else
+							this.strokesZ = [];							
+						
+						if (this.flgZgrid)
+							this.countGridZ();
+						else
+							this.gridZ = [];
+					},
+
+					//Пишем пример в Excel
+					writeExampleExcel:function()
+					{						
+						//Задаём имя файла примера
+						var fileName = "example.xlsx";
+						//Создаём новую книгу Excel;
+						var wb = XLSX.utils.book_new();
+						//Эти данные были в исходном примере из Интернета
+						//(структура массива массивов)
+						var data = 
+						[
+							[1, 2, 3],
+							[true, false, null, "sheetjs"],
+							["foo", "bar", new Date("2014-02-19T14:30Z"), "0.3"],
+							["baz", null, "qux"]
+						];
+						//Выдаём имя листу книги Excel
+						var ws_name = "SheetJS";						
+						
+						//Создаём лист Excel, куда записываем данные из примера
+						//функция aoa_to_sheet требует на вход массив массиовов
+						//(aoa - array of arrays)
+						var ws = XLSX.utils.aoa_to_sheet(data);
+						
+						//Добавляем лист в книгу Excel
+						XLSX.utils.book_append_sheet(wb, ws, ws_name);
+						
+						//Пишем файл книги Excel
+						XLSX.writeFile(wb, fileName);
+					},
+					
+					//Пишем точки графика в Excel
+					writePointsExcel:function()
+					{						
+						//Задаём имя файла
+						var filename = "points.xlsx";
+						//Создаём книгу Excel;
+						var wb = XLSX.utils.book_new();
+						//Выдаём имя листу книги Excel
+						var ws_name = "Синусоида";						
+						
+						//Создаём лист Excel, куда записываем точки графика;
+						//Функция требует на вход json
+						var ws = XLSX.utils.json_to_sheet(this.points);
+						
+						// Добавляем лист в книгу
+						XLSX.utils.book_append_sheet(wb, ws, ws_name);
+						
+						// Пишем файл
+						XLSX.writeFile(wb, filename);
+					}
+				},
+				
+				//
+				created: function()
+				{
+					this.countPoints(true);
+				}
+			});
+		</SCRIPT>
+
+		<STYLE TYPE="text/css">
+			svg
+			{
+				border: 1px solid #000000;
+			}
+			
+			input
+			{
+				width:60px;
+			}
+		</STYLE>
+
+	</BODY>
+
+</HTML>
